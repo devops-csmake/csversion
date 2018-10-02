@@ -1,0 +1,167 @@
+# <copyright>
+# (c) Copyright 2018 Cardinal Peak Technologies, LLC
+#
+# This program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# </copyright>
+
+[~~phases~~]
+clean=Remove all csmake generated files
+package=Create the csversion package
+test=Run testing for csversion
+**sequences=
+   clean -> package: create the csmake install package
+**default=clean -> package
+
+[metadata@csversion]
+name=csversion
+version=1.0.0
+description=version and manifest capture/dump tool and libraries
+about=csversion works in conjunction with csmake's csmake-manifest library
+ and other csmake modules that conform to and use the csversion formatting
+ for versions and manifest capturing.
+ .
+ Customization of this package is encouraged for individual projects and
+ deliverables as a normalized way to provide versioning/manifest information
+ about products and environments.
+packager=Jeremiah Patterson <jerry@casecracker.com>
+manufacturer=Cardinal Peak Technologies, LLC
+depends=python (>= 2.6)
+suggests=csmake, rpm, dpkg, pip
+keywords=make build development versioning manifests
+url=https://github.com/devops-csmake/csversion
+copyrights=csmake-cpt-copyright
+classifiers=
+    Development Status :: 2 - PreAlpha
+    Intended Audience :: Developers
+    Intended Audience :: System Administrators
+    Topic :: Software Development :: Build Tools
+    Topic :: Software Development :: Quality Assurance
+    Topic :: System :: Logging
+    Topic :: System :: Installation/Setup
+    Programming Language :: Python :: 2
+    Programming Language :: Python :: 2.6
+    Programming Language :: Python :: 2.7
+    License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+**files=
+    <bin (python:script)> csversion,
+    <Csversion (python:package)>  Csversion/*.py,
+    <man (groff:man-source)> docs/*.*.roff
+
+[copyright@csmake-cpt-copyright]
+disclaimer=
+ This program is free software: you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the
+ Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian based systems see: /usr/share/common-licenses
+license=GPLv3
+holder=Cardinal Peak Technologies, LLC
+years=2018
+
+[AsciiGPGSignature@default-ascii-signer]
+[DebianPackage@debian-csversion-signed]
+package-version=1.0
+default_python-script={root}/usr/bin/
+maps=csversion-installs
+result=%(RESULTS)s/debpackage
+debian-directory-copyright=csmake-cpt-copyright
+signer=default-ascii-signer
+
+[Signature@default-signer]
+[RpmPackage@rpm-csmake-signed]
+package-version=1.0
+default_python-script={root}/usr/bin/
+maps=csmake-installs
+result=%(RESULTS)s/rpmfile
+signers=default-signer
+
+[DebianPackage@debian-csmake]
+package-version=1.0
+default_python-script={root}/usr/bin/
+maps=csmake-installs
+result=%(RESULTS)s/debpackage
+debian-directory-copyright=csmake-cpt-copyright
+
+[versioning@snapshot-version]
+designation=snapshot
+format={datetime}.{gitSHA}
+shell_datetime=date --utc +%%Y%%m%%d%%H%%M%%S
+shell_gitSHA=git rev-parse HEAD
+
+[versioning@rc-version]
+designation=rc
+format=rc{rc}
+value_rc=1
+
+[InjectVersion@push-csversion-version]
+**maps=<(:script)> -(1-1)-> csversion/scripts/{~~file~~}
+match={{INJECT-csversion-version}}
+version-marker=+
+
+[CompressManPage@manfiles]
+**maps=
+      <(:man-source)> -(1-1)->  <(gzip:manpage)> man/{~~filename~~}
+
+[installmap@csversion-installs]
+path_root=INSTALL_ROOT
+path_python-lib=PYTHON
+path_python-script=PYTHON_SCRIPT
+owner_root=root
+group_root=root
+
+map_bin_files=
+   map: <bin> -(1-1)-> {PYTHON_SCRIPT}/{~~file~~}}
+   copyright: csmake-cpt-copyright
+   owner:{root}
+   group:{root}
+   permissions: 755
+map_Csversion=
+   map: <Csverssion> -(1-1)-> {PYTHON}/Csmake/{~~file~~}}
+   copyright: csmake-cpt-copyright
+   owner:{root}
+   group:{root}
+   permissions: 644
+map_manpages=
+   map: <(:manpage)> ~~man/(.*)[.]([1-9]) -(1-1)-> ~~{INSTALL_ROOT}/usr/share/man/man\2/\1.\2.gz
+   copyright: csmake-copyright, csmake-cpt-copyright
+   owner:{root}
+   group:{root}
+   permissions:644
+   rpmflags:doc
+
+[subcommand@common-package-steps]
+description=Prepare/build files for packaging
+0000=push-csversion-version, manfiles
+
+[command@snapshot]
+description=Create and package a csmake snapshot
+00=csversion, snapshot-version, command@
+
+[command@rc]
+description=Create and package a csmake release candidate
+00=csversion, rc-version, command@
+
+[command@]
+description=Create and package a csmake release
+00=csversion, common-package-steps, debian-csversion, rpm-csversion-signed
+

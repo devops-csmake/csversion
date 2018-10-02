@@ -1,0 +1,92 @@
+#!/usr/bin/python
+# <copyright>
+# (c) Copyright 2018 Cardinal Peak Technologies
+#
+# This program is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+# Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# </copyright>
+
+from Csversion.Csversion import CsversionCli
+
+CSVERSION_SETTINGS={
+    "manifests" : [
+        "/etc/csversion.d",
+        """csversion manifests to query for output.
+           Parameters are a comma separated list of files and/or directories.
+           For directories, csversion will look for *.csversion files""",
+        False,
+        "csversion manifests to query." ],
+    "diff" : [
+        False,
+        """Creates a diff record of the manifest(s) supplied
+           The oldest and newest are the two compared.
+
+           A specific baseline version or date may be specified using
+           --diff-version and/or --diff-date""",
+        True,
+        "Output the difference between oldest and newest manifest data" ],
+    "diff-version" : [
+        None,
+        """Specifies a version to use as a baseline for the diff output.
+           If the version is not found in the manifests, the diff record
+           generated will be from the assumption that the baseline was
+           nothing, i.e., everything will be listed as new from the current
+           version""",
+        False,
+        "Diff baseline comparison version" ],
+    "diff-date" : [
+        None,
+        """Specifies an ISO 8601 compliant time to use as a baseline for the
+           diff output: YYYY-MM-DDThh:mm:ss<TZ> is the format where
+              TZ is either 'Z' for Zulu or +/-hh:mm offset from Zulu
+           The time used will be the oldest time found after the given time
+           E.g., if 2014-05-04 is specified and the oldest record after that
+              date was 2014-05-05, then that will be used as a baseline.""",
+        False,
+        "Diff baseline closest older comparison date" ],
+    "products" : [
+        None,
+        """Output only the version of the products listed in the option.
+           The products will be listed comma separated.""",
+        False,
+        "Filter out all products not listed" ],
+    "generate" : [
+        "./csversionfile",
+        """Create a manifest on the live system using the csversion file""",
+        False ],
+    "stdout" : [
+        "yaml",
+        """Output format for standard out:
+           yaml - YAML output (default - csversion's native format)
+           xml - XML output
+           json - JSON output
+           none - supress stdout dump of output""",
+        False,
+        "Specify the output format to stdout: yaml, xml, json, none" ],
+    "yaml" : [
+        None,
+        """Output results in yaml to the path provided""",
+        False ],
+    "json" : [
+        None,
+        """Output results in json to the path provided""",
+        False ],
+    "xml" : [
+        None,
+        """Output results in xml to the path provided""",
+        False ]
+}
+
+if __name__ == '__main__':
+    cli = CsversionCli(CSVERSION_SETTINGS, 'csversion', '{{INJECT-csversion-version}}')
+    cli.main()
