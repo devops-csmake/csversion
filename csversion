@@ -36,7 +36,7 @@ CSVERSION_SETTINGS={
            The oldest and newest are the two compared.
 
            A specific baseline version or date may be specified using
-           --diff-version and/or --diff-date""",
+           --diff-latest, --diff-version and/or --diff-date""",
         True,
         "Output the difference between oldest and newest manifest data" ],
     "diff-version" : [
@@ -58,6 +58,10 @@ CSVERSION_SETTINGS={
               date was 2014-05-05, then that will be used as a baseline.""",
         False,
         "Diff baseline closest older comparison date" ],
+    "diff-latest" : [
+        False,
+        """Specifies the difference of the latest two manifests""",
+        True ],
     "products" : [
         None,
         """Output only the version of the products listed in the option.

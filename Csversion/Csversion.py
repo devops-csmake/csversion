@@ -188,14 +188,13 @@ class Manifest(dict):
             dttime2 = self.convertIsoToDateTime(time2)
             #Preserve tenths of a second for int comparisons
             return (dttime1 - dttime2).total_seconds()*10.0
-        except (TypeError,AttributeError):
+        except (TypeError,AttributeError,ValueError):
             if time1 is None:
                 if time2 is None:
                     return 0
                 return -1
             if time2 is None:
                 return 1
-            raise
 
     def olderKey(self, version, time):
         return "%s__%s" % (version, time)
@@ -230,6 +229,14 @@ class Manifest(dict):
             return d
         return dict.__getitem__(self, key)
 
+    def _splitOlderKey(self, key):
+        version, date = key.split('__')
+        if version == 'None':
+            version = None
+        if date == 'None':
+            date = None
+        return (version, date)
+
     def captureAllOldestTagAges(self, specificVersion=None, specificDate=None):
         ages = self.captureAllTagAges()
         if self.hasMetadata():
@@ -241,7 +248,7 @@ class Manifest(dict):
                 if '__older' in keyvalue:
                     olders = keyvalue['__older'].keys()
                     for old in olders:
-                        version, date = old.split('__')
+                        version, date = self._splitOlderKey(old)
                         if specificVersion is not None and \
                             self.compareVersions(version, specificVersion) != 0:
                                 continue
@@ -256,6 +263,28 @@ class Manifest(dict):
                             oldestDate = date
                             oldestKeypath = (k, '__older', old)
                 ages[k] = (oldestVersion, oldestDate, oldestKeypath)
+        return ages
+
+    def captureAllLatestOldTagAges(self):
+        ages = self.captureAllTagAges()
+        if self.hasMetadata():
+            for k in ages.keys():
+                keyvalue = self['product']['metadata'][k]
+                if '__older' in keyvalue:
+                    olders = keyvalue['__older'].keys()
+                    old = olders[0]
+                    newestOldVersion, newestOldDate = self._splitOlderKey(old)
+                    newestOldKeypath = (k, '__older', old)
+                    for old in olders:
+                        version, date = self._splitOlderKey(old)
+                        ans = self.compareVersions(newestOldVersion, version)
+                        if ans == 0:
+                            ans = self.compareTimes(newestOldDate, date)
+                        if ans < 0:
+                            newestOldVersion = version
+                            newestOldDate = date
+                            newestOldKeypath = (k, '__older', old)
+                    ages[k] = (newestOldVersion, newestOldDate, newestOldKeypath)
         return ages
 
     def subsumeManifests(self, manifests):
@@ -324,9 +353,9 @@ class Manifest(dict):
                         if tagkey not in self[key][subkey]:
                             self[key][subkey][tagkey] = {}
                         fullManifestTag = self[key][subkey][tagkey]
-                        if type(tagvalue) is list:
-                            #This is for older versions, the list is [key, value]
-                            tagvalue = {tagvalue[0] : tagvalue[1:]}
+                        if '__older' in fullManifestTag \
+                          and '__older' in tagvalue:
+                            tagvalue['__older'].update(fullManifestTag['__older'])
                         fullManifestTag.update(tagvalue)
 
     def _translateOldToNewProduct(self):
@@ -411,10 +440,13 @@ class Manifest(dict):
         if tag not in dictionary[key][part]:
             dictionary[key][part][tag] = {}
     
-    def diffManifest(self, processor, specificVersion=None, specificDate=None):
+    def diffManifest(self, processor, specificVersion=None, specificDate=None, latestOnly=False):
         result = {'diff' : {}}
         #Capture the version-full and time of the manifest
-        oldests = self.captureAllOldestTagAges(specificVersion, specificDate)
+        if latestOnly:
+            oldests = self.captureAllLatestOldTagAges()
+        else:
+            oldests = self.captureAllOldestTagAges(specificVersion, specificDate)
         for key, section in self.iteritems():
             for part, tags in section.iteritems():
                 for tag, data in tags.iteritems():
@@ -539,7 +571,8 @@ class CsversionCli(CliDriver.CliDriver):
             self.output(self.manifest.diffManifest(
                 self.diffprocessor,
                 self.settings['diff-version'],
-                self.settings['diff-date']))
+                self.settings['diff-date'],
+                self.settings['diff-latest']))
             return
         if self.settings['verbose']:
             self.output(self.manifest)
