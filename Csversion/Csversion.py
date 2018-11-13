@@ -131,8 +131,12 @@ class Manifest(dict):
                 part2sub = None
                 if '-' in part1:
                     part1, part1sub = part1.split('-',1)
+                elif '+' in part1:
+                    part1, part1sub = part1.split('+',1)
                 if '-' in part2:
                     part2, part2sub = part2.split('-',1)
+                elif '+' in part2:
+                    part2, part2sub = part2.split('+',1)
                 try:
                     intpart1 = int(part1)
                     intpart2 = int(part2)
@@ -155,7 +159,10 @@ class Manifest(dict):
 
                 if result != 0:
                     break
-            return result
+            if result == 0:
+                return len(dotparts1) - len(dotparts2)
+            else:
+                return result
         except (TypeError, AttributeError):
             if version1 is None:
                 if version2 is None:
