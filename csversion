@@ -26,6 +26,10 @@ CSVERSION_SETTINGS={
            For directories, csversion will look for *.csversion files""",
         False,
         "csversion manifests to query." ],
+    "manifests-ignore" : [
+        False,
+        """Ignore any manifests on the system, and the manifests flag""",
+        True ],
     "diff" : [
         False,
         """Creates a diff record of the manifest(s) supplied
@@ -60,10 +64,20 @@ CSVERSION_SETTINGS={
            The products will be listed comma separated.""",
         False,
         "Filter out all products not listed" ],
-    "generate" : [
-        "./csversionfile",
-        """Create a manifest on the live system using the csversion file""",
-        False ],
+    "capture" : [
+        False,
+        """Perform a capture of the current system state based on the
+           csversionfile configuration.
+              See --csversionfile for details""",
+        True,
+        "Perform capture of current system state using csversionfile" ],
+    "csversionfile" : [
+        "/etc/csversion/csversionfile",
+        """The csversionfile to use for a capture.
+           Multiple files may be specified using commas.
+           Example: --csversionfile=file1.csversion,file2.csversion""",
+        False,
+        "Comma separated list of csversionfiles to use for capture" ],
     "stdout" : [
         "yaml",
         """Output format for standard out:

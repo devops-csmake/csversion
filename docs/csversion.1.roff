@@ -1,0 +1,403 @@
+.\"# <copyright>
+.\"# (c) Copyright 2018 Cardinal Peak Technologies
+.\"#
+.\"# This program is free software: you can redistribute it and/or modify it
+.\"# under the terms of the GNU General Public License as published by the
+.\"# Free Software Foundation, either version 3 of the License, or (at your
+.\"# option) any later version.
+.\"#
+.\"# This program is distributed in the hope that it will be useful,
+.\"# but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+.\"# Public License for more details.
+.\"#
+.\"# You should have received a copy of the GNU General Public License
+.\"# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+.\"# </copyright>
+
+.\" Process this file with
+.\" groff -man -Tascii csversion.1.roff
+.\"
+
+.TH csversion 1 "NOVEMBER 2018" "devops-csmake" "User Manuals"
+.SH NAME
+csversion - Tool for collecting, managing, and displaying product information
+.SH SYNOPSIS
+.B csversion [Options]
+.SH DESCRIPTION
+.B csversion
+displays collected version information from a build outputting a csversion
+manifest by default when the version is captured in a manifest located in
+/etc/csversion.d
+
+Multiple manifests can be collated into a single manifest with all data
+preserved.
+
+Differences can be produced between versions in a single or multiple manifests
+representing multiple versions with csversion as well.
+
+Desired data can be collected on a live system into a manifest through the
+use of a csversionfile specification determining what data to collect and
+store in the manifest.  The collection ability is modular allowing for
+extensibility of collection capabilities beyond the default implementation
+in csversion, through more installed modules from CsversionModules, or local
+custom classes in CsversionLocalModules that can be in the PYTHONPATH when
+csversion executes.
+
+A csversionfile driving the collection process is a python ini configuration
+format using the headers to specify what action to take, the tag to use for
+the results, and an optional manifest target location.  The "action" is
+specified as a module that is designed to work with csversion.  The options in
+each section, if any, provide further direction for the specific section's
+module.
+
+The structure of a csversionfile section looks like this:
+.EX
+    [<module>@<product tag> <target>]
+    option1 = value
+    option2 = value
+.EE
+
+Here is an example:
+
+.EX
+    [CollectDpkgs@my-product sources]
+    chroot=/my-product/chrootjail
+.EE
+
+CollectDpkgs is a module that will query the dpkg system for all packages
+installed and add information for each package found to the manifest.
+
+The product tag, my-product, ensures the information will all be tagged to be
+related to "my-product", allowing similar collections to be done for other
+products or purposes allowing the results from multiple tags to be collated
+into a single manifest.
+
+The "sources" target instructs the module to put the results of the query
+into the manifest under the "sources" header, which is the default location
+for package and related information.
+
+Manifests read by csversion are required to be in the yaml format and
+while are somewhat free flowing based on the needs of the application,
+csversion makes certain assumptions about the structure.  More info in
+the MANIFESTS section below.
+
+.SH OPTIONS
+
+.EX
+    /usr/bin/csversion [Options]
+
+--capture: Perform capture of current system state using csversionfile
+--configuration: Specifies configuration file(s) to use
+--csversionfile: Comma separated list of csversionfiles to use for capture
+--debug: Turn on debugging output
+--diff: Output the difference between oldest and newest manifest data
+--diff-date: Diff baseline closest older comparison date
+--diff-version: Diff baseline comparison version
+--help: Displays the short help text and usage
+--help-long: Displays the long help text and usage
+--json: Output results in json to the path provided
+--log: Sends all logging to specified file, Default: stdout
+--manifests: csversion manifests to query.
+--manifests-ignore: Ignore any manifests on the system, and the manifests flag
+--products: Filter out all products not listed
+--quiet: Suppress all logging output
+--settings: JSON specification of settings
+--stdout: Specify the output format to stdout: yaml, xml, json, none
+--verbose: Turn on verbose output
+--version: Shows version of program and exits
+--xml: Output results in xml to the path provided
+--yaml: Output results in yaml to the path provided
+
+.SH OPTION DETAILS
+
+.EX
+--capture : 
+    Perform a capture of the current system state based on the
+       csversionfile configuration.
+          See --csversionfile for details
+--configuration=None : 
+    Specifies one or more configuration files (comma separated)
+       to read from.  Configurations are ini files where the options
+       are the command-line flags and the values are the desired defaults.
+       All definitions go under the section 'settings', e.g.:
+       [settings]
+       mysetting=setting_value,other_setting_value
+
+       The order of processing is:
+           Configuration files specified by the 'configuration' flag in order
+
+       NOTE: Configuration files change command-line behavior
+--csversionfile=/etc/csversion/csversionfile : 
+    The csversionfile to use for a capture.
+       Multiple files may be specified using commas.
+       Example: --csversionfile=file1.csversion,file2.csversion
+--debug : 
+    Turn on debugging output
+--diff : 
+    Creates a diff record of the manifest(s) supplied
+       The oldest and newest are the two compared.
+
+       A specific baseline version or date may be specified using
+       --diff-version and/or --diff-date
+--diff-date=None : 
+    Specifies an ISO 8601 compliant time to use as a baseline for the
+       diff output: YYYY-MM-DDThh:mm:ss<TZ> is the format where
+          TZ is either 'Z' for Zulu or +/-hh:mm offset from Zulu
+       The time used will be the oldest time found after the given time
+       E.g., if 2014-05-04 is specified and the oldest record after that
+          date was 2014-05-05, then that will be used as a baseline.
+--diff-version=None : 
+    Specifies a version to use as a baseline for the diff output.
+       If the version is not found in the manifests, the diff record
+       generated will be from the assumption that the baseline was
+       nothing, i.e., everything will be listed as new from the current
+       version
+--help : 
+    Displays the short help text and usage
+--help-long : 
+    Displays the long help text and usage
+--json=None : 
+    Output results in json to the path provided
+--log=None : 
+    Sends all logging to specified file, Default: stdout
+--manifests=/etc/csversion.d : 
+    csversion manifests to query for output.
+       Parameters are a comma separated list of files and/or directories.
+       For directories, csversion will look for *.csversion files
+--manifests-ignore : 
+    Ignore any manifests on the system, and the manifests flag
+--products=None : 
+    Output only the version of the products listed in the option.
+       The products will be listed comma separated.
+--quiet : 
+    Suppress all logging output
+--settings=None : 
+    JSON specification of settings to allow settings to be conveyed
+       via a single string.  These settings will override all other 
+       settings.  Example: --settings={"setting" : "mysetting"}
+--stdout=yaml : 
+    Output format for standard out:
+       yaml - YAML output (default - csversion's native format)
+       xml - XML output
+       json - JSON output
+       none - supress stdout dump of output
+--verbose : 
+    Turn on verbose output
+--version : 
+    Shows version of program and exits
+--xml=None : 
+    Output results in xml to the path provided
+--yaml=None : 
+    Output results in yaml to the path provided
+
+.SH MANIFESTS
+
+The csversion manifests are, by default, a YAML format.  csversion requires
+all manifest inputs to be in a YAML format to be processed.  The manifest
+structure is designed to be free flowing, with minimal required structure.
+However, there are a few assumptions csversion makes on the manifests that
+csversion uses to interpret and populate the manifests.
+
+csversion will output full manifests if the --verbose flag is used on the
+command line and --diff is not specified.  If --diff is specified, a diff
+manifest will be provided based on the manifests read (and/or captured).
+If neither --diff nor --verbose is specified, csversion will output a
+version manifest.
+
+First and foremost, are the product tags.  A path through the manifest structure
+to a piece of information always goes through a product tag.  As a result,
+there are three parts to a path through a manifest: the target - which is the
+prefix, the product tag, and the data path or suffix.  There are some standard
+prefixes and suffixes csversion uses, when interpreting differences and
+collating manifests.
+
+.IP "product.build target prefix"
+This is build information that would be generated by a build process, such as
+csmake, for a product.  It is envisioned that a build process would be able
+to deliver a manifest for its product, and if so, any specific information
+related to that build would go in this section.  Of particular import,
+the product.build.<tag>.time information is used for collating common data
+with common tags, the latest time is used as the most recent information
+when the product.metadata.<tag>.version-full entries match and there
+is no product.capture.<tag>.time information available or the capture time
+also matches.
+.IP "product.capture target prefix"
+This is information populated by the csversion process's capture method.
+Of particular import, the product.capture.<tag>.time information is used
+to determine the latest manifest information for collating when the
+product.metadata.<tag>.version-full matches.
+.IP "product.metadata target prefix"
+The metadata for the product belongs in this section, such as the name of
+the product (which may differ from the product tag used), the version
+information, which may be captured in a very descriptive "version" dictionary.
+For example, a version dictionary may have version.primary=1.2.3, version.primary-major=1, version-minor=2, version-patch=3, version.build=455, etc.  csversion
+uses the product.metadata.<tag>.version-full tag to do version comparisons
+for collating different manifests for the same product. Other metadata may
+also be provided in this prefix as well.
+.IP "sources.<package name> target prefix"
+The sources section is a listing of all sources that produced the system
+in use.  This section is useful for appliances that require builds of entire
+systems, or docker container auditing, chroot jail auditing, virtualenv and pip
+auditing of python, etc.  The structure expected in this section may seem
+a bit non-intuitive at first, but the reason for the structure is to allow
+for extreme scaled collation and auditing (imagine collating and making sense of
+20 docker containers, for example).  The full structure for the section looks
+like:
+
+.EX
+   sources.<package name>.<product tag>.<packaging/management system>.<arch/environment>.<data>. 
+.EE
+
+.P
+The "package name" is the common name of the package.  Some environments may
+use differing names for common packages so this system won't be perfect.
+
+The "product tag" is the tag that is used to keep all information in the
+manifest separated by product.
+
+The "packaging system" or "management system" is the package management
+environment the package is being managed by.  This determines, for example,
+what data will be available, what the meanings of the "arch/environment" will
+be, etc.  A package can exist on a single system in multiple management
+environments, e.g., dpkg and pip.
+
+.P
+When manifests that contain the same product tag are collated, older information
+is subsumed by the newer information under a subtag called '__older' followed by
+a sub-subtag that has the related version and time of the capture or build.
+
+Here is an example of a subsumed result:
+
+.EX
+product:
+  metadata:
+    my-product-tag:
+      name: my-product-package-name
+      version-full: 1.1.2
+    __older:
+      1.1.1__2018-09-11T20:07:50Z:
+        name: my-product-package-name
+        version-full: 1.1.1
+.EE
+
+.SH DIFF MANIFESTS
+
+A diff manifest is similar to a regular manifest, but with a bit different
+structure to capture and convey the differences between manifests describing
+the same product tags.
+
+To denote a diff manifest, the leading entity in the output is "diff".  Under
+ "diff" the structure of a manifest is used only for any entries that
+ have changed.  Under the product tag, the entities, "new" and "old" denote
+ changes that have occurred under the tag.
+
+csversion will product a diff manifest if the --diff flag is used on
+the command line
+
+Here is an example of a diff manifest:
+
+.EX
+diff:
+  product:
+    metadata:
+      my-product-tag:
+        new: 
+          name: my-product-package-name
+          version-full: 1.1.2
+        old:
+          name: my-product-package-name
+          version-full: 1.1.1
+.EE
+
+.SH VERSION MANIFESTS
+
+A version manifest is a simple manifest that lists the product name and
+version for each tag in the metadata found for all the manifests.
+
+For this manifest, the leading tag is 'version', followed by a dictionary
+of tags found.  Each tag has a list of dictionary 'name', 'version' tagged
+pairs for all of the names and versions found under that tag (realistically,
+there should only be one entry in that list, the latest for each tag,
+unless the manifest was listing a history of all versions)
+
+The version manifest is the default output for csversion.
+
+An example version manifest:
+
+.EX
+version:
+   my-product-tag:
+   - {name: my-product-package-name, version: 1.1.2}
+.EE
+
+.SH LOCAL MODULES
+
+The capture process makes use of the various modules delivered in the
+CsversionModules python directory.  The process may also use modules
+defined in an alternative python module called CsversionLocalModules.
+
+Here is an example __init__.py to use in CsversionLocalModules to expose
+all classes within the directory:
+
+.EX
+  from os.path import dirname, basename, isfile
+  import glob
+  modules = glob.glob(dirname(__file__)+"/*.py")
+  __all__ = [ basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+  from . import *
+.EE
+
+.SH EXAMPLES
+
+.HP 4
+csversion
+
+.P
+Output the version information from all the manifests found in /etc/csversion.d
+
+.HP 4
+csversion --verbose
+
+.P
+Output the full collated manifest from all the manifests found in
+/etc/csversion.d
+
+.HP 4
+csversion --stdout=xml --verbose --manifests=manifest1,manifest2
+
+.P
+Output the collated manifest from files manifest1 and manifest2 and
+output the result in xml following a schema where entities are the keys.
+
+.HP 4
+csversion --capture --verbose
+
+.P
+Read the capture configuration from /etc/csversion/csversionfile and execute
+the modules specified, collating the result with the manifests found in
+/etc/csversion.d and output the resulting manifest
+
+.HP 4
+csversion --capture --manifests-ignore --verbose
+
+.P
+Read the capture configuration from /etc/csversion/csversionfile and execute
+the modules specified and output just the results of the capture.
+
+.SH SEE ALSO
+
+csmake(1) PYTHON(1)
+
+.EX
+ConfigParser
+    https://docs.python.org/2/library/configparser.html
+.EE
+
+.SH COPYRIGHT
+
+csversion is Copyright 2018 Cardinal Peak Technologies, with work adapted
+from csmake Copyright 2014-2017 Hewlett Packard Enterprise Development L.P.
+
+Released under the GNU General Public License v3
+

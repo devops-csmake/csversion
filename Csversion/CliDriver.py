@@ -403,6 +403,7 @@ class CliDriver(object):
         self.log = logging.getLogger("%s.%s" % (
             self.__class__.__module__,
             self.__class__.__name__ ) )
+        self.log.setLevel(logConfig['level'])
 
     def _forceQuiet(self):
         key = self.DEFAULT_CONFIG_QUIET_KEY
