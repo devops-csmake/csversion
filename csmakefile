@@ -16,11 +16,11 @@
 # </copyright>
 
 [~~phases~~]
-clean=Remove all csmake generated files
+clean=Remove all csversion generated files
 package=Create the csversion package
 test=Run testing for csversion
 **sequences=
-   clean -> package: create the csmake install package
+   clean -> package: create the csversion install package
 **default=clean -> package
 
 [metadata@csversion]
@@ -37,10 +37,10 @@ about=csversion works in conjunction with csmake's csmake-manifest library
 packager=Jeremiah Patterson <jerry@casecracker.com>
 manufacturer=Cardinal Peak Technologies, LLC
 depends=python (>= 2.6)
-suggests=csmake, rpm, dpkg, pip
+suggests=csmake, rpm, dpkg, pip, csmake-manifest
 keywords=make build development versioning manifests
 url=https://github.com/devops-csmake/csversion
-copyrights=csmake-cpt-copyright
+copyrights=csmake-cpt-copyright,csmake-copyright
 classifiers=
     Development Status :: 2 - PreAlpha
     Intended Audience :: Developers
@@ -56,6 +56,7 @@ classifiers=
 **files=
     <bin (python:script)> csversion,
     <Csversion (python:package)>  Csversion/*.py,
+    <CsversionModules (python:package)> CsversionModules/*.py,
     <man (groff:man-source)> docs/*.*.roff
 
 [copyright@csmake-cpt-copyright]
@@ -78,6 +79,26 @@ license=GPLv3
 holder=Cardinal Peak Technologies, LLC
 years=2018
 
+[copyright@csmake-copyright]
+disclaimer=
+ This program is free software: you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the
+ Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+ Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ .
+ On Debian based systems see: /usr/share/common-licenses
+license=GPLv3
+holder=Hewlett Packard Enterprise Development LP
+years=2014-2017
+
 [AsciiGPGSignature@default-ascii-signer]
 [DebianPackage@debian-csversion-signed]
 package-version=1.0
@@ -88,17 +109,17 @@ debian-directory-copyright=csmake-cpt-copyright
 signer=default-ascii-signer
 
 [Signature@default-signer]
-[RpmPackage@rpm-csmake-signed]
+[RpmPackage@rpm-csversion-signed]
 package-version=1.0
 default_python-script={root}/usr/bin/
-maps=csmake-installs
+maps=csversion-installs
 result=%(RESULTS)s/rpmfile
 signers=default-signer
 
-[DebianPackage@debian-csmake]
+[DebianPackage@debian-csversion]
 package-version=1.0
 default_python-script={root}/usr/bin/
-maps=csmake-installs
+maps=csversion-installs
 result=%(RESULTS)s/debpackage
 debian-directory-copyright=csmake-cpt-copyright
 
@@ -136,14 +157,20 @@ map_bin_files=
    group:{root}
    permissions: 755
 map_Csversion=
-   map: <Csverssion> -(1-1)-> {PYTHON}/Csmake/{~~file~~}}
+   map: <Csversion> -(1-1)-> {PYTHON}/Csversion/{~~file~~}}
+   copyright: csmake-cpt-copyright
+   owner:{root}
+   group:{root}
+   permissions: 644
+map_CsversionModules=
+   map: <CsversionModules> -(1-1)-> {PYTHON}/CsversionModules/{~~file~~}}
    copyright: csmake-cpt-copyright
    owner:{root}
    group:{root}
    permissions: 644
 map_manpages=
    map: <(:manpage)> ~~man/(.*)[.]([1-9]) -(1-1)-> ~~{INSTALL_ROOT}/usr/share/man/man\2/\1.\2.gz
-   copyright: csmake-copyright, csmake-cpt-copyright
+   copyright: csmake-cpt-copyright
    owner:{root}
    group:{root}
    permissions:644
@@ -154,14 +181,14 @@ description=Prepare/build files for packaging
 0000=push-csversion-version, manfiles
 
 [command@snapshot]
-description=Create and package a csmake snapshot
+description=Create and package a csversion snapshot
 00=csversion, snapshot-version, command@
 
 [command@rc]
-description=Create and package a csmake release candidate
+description=Create and package a csversion release candidate
 00=csversion, rc-version, command@
 
 [command@]
-description=Create and package a csmake release
+description=Create and package a csversion release
 00=csversion, common-package-steps, debian-csversion, rpm-csversion-signed
 

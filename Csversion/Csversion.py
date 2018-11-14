@@ -15,11 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # </copyright>
 import CliDriver
+import ConfigDriver
 import datetime
+import glob
+import json
+import os.path
 import re
 import yaml
-import json
-import logging
 from sys import stdout, stderr
 
 class Output(object):
@@ -43,12 +45,12 @@ class Output(object):
 class XmlOutput(Output):
     def _outputHelper(self, item, indent=0):
         indentString = " " * 4 * indent
-        if type(item) is dict:
+        if issubclass(type(item), dict):
             for key, value in item.iteritems():
                 self.stream.write("%s<%s>\n" % (indentString, key))
                 self._outputHelper(value, indent+1)
                 self.stream.write("%s</%s>\n" % (indentString, key))
-        elif type(item) is list:
+        elif issubclass(type(item), list):
             for i in item:
                 self.stream.write("%s<item>\n" % indentString)
                 self._outputHelper(i, indent+1)
@@ -73,8 +75,17 @@ OUTPUT_TYPES = {
     'xml' : XmlOutput }
 
 class Manifest(dict):
-    def __init__(self, filepaths):
-        self.joinManifests(filepaths)
+    def __init__(self, filepaths, preprocessed=[]):
+        #filepaths is a list of files to load as manifests
+        #preprocessed is a list of manifest dictionaries to subsume
+        #   into this manifest
+        self.preprocessed = []
+        for pre in preprocessed:
+            m = Manifest([])
+            m.update(pre)
+            self.preprocessed.append(m)
+        if len(filepaths) > 0 or len(preprocessed) > 0:
+            self.joinManifests(filepaths)
 
     def hasMetadata(self):
         return 'product' in self and \
@@ -102,9 +113,12 @@ class Manifest(dict):
 
     def getTimeForTag(self, tag):
         try:
-            return self['product']['build'][tag]['time']
+            return self['product']['capture'][tag]['time']
         except KeyError:
-            return None
+            try:
+                return self['product']['build'][tag]['time']
+            except KeyError:
+                return None
 
     def compareVersions(self, version1, version2):
         try:
@@ -117,8 +131,12 @@ class Manifest(dict):
                 part2sub = None
                 if '-' in part1:
                     part1, part1sub = part1.split('-',1)
+                elif '+' in part1:
+                    part1, part1sub = part1.split('+',1)
                 if '-' in part2:
                     part2, part2sub = part2.split('-',1)
+                elif '+' in part2:
+                    part2, part2sub = part2.split('+',1)
                 try:
                     intpart1 = int(part1)
                     intpart2 = int(part2)
@@ -141,7 +159,10 @@ class Manifest(dict):
 
                 if result != 0:
                     break
-            return result
+            if result == 0:
+                return len(dotparts1) - len(dotparts2)
+            else:
+                return result
         except (TypeError, AttributeError):
             if version1 is None:
                 if version2 is None:
@@ -174,14 +195,13 @@ class Manifest(dict):
             dttime2 = self.convertIsoToDateTime(time2)
             #Preserve tenths of a second for int comparisons
             return (dttime1 - dttime2).total_seconds()*10.0
-        except (TypeError,AttributeError):
+        except (TypeError,AttributeError,ValueError):
             if time1 is None:
                 if time2 is None:
                     return 0
                 return -1
             if time2 is None:
                 return 1
-            raise
 
     def olderKey(self, version, time):
         return "%s__%s" % (version, time)
@@ -216,6 +236,14 @@ class Manifest(dict):
             return d
         return dict.__getitem__(self, key)
 
+    def _splitOlderKey(self, key):
+        version, date = key.split('__')
+        if version == 'None':
+            version = None
+        if date == 'None':
+            date = None
+        return (version, date)
+
     def captureAllOldestTagAges(self, specificVersion=None, specificDate=None):
         ages = self.captureAllTagAges()
         if self.hasMetadata():
@@ -227,7 +255,7 @@ class Manifest(dict):
                 if '__older' in keyvalue:
                     olders = keyvalue['__older'].keys()
                     for old in olders:
-                        version, date = old.split('__')
+                        version, date = self._splitOlderKey(old)
                         if specificVersion is not None and \
                             self.compareVersions(version, specificVersion) != 0:
                                 continue
@@ -242,6 +270,28 @@ class Manifest(dict):
                             oldestDate = date
                             oldestKeypath = (k, '__older', old)
                 ages[k] = (oldestVersion, oldestDate, oldestKeypath)
+        return ages
+
+    def captureAllLatestOldTagAges(self):
+        ages = self.captureAllTagAges()
+        if self.hasMetadata():
+            for k in ages.keys():
+                keyvalue = self['product']['metadata'][k]
+                if '__older' in keyvalue:
+                    olders = keyvalue['__older'].keys()
+                    old = olders[0]
+                    newestOldVersion, newestOldDate = self._splitOlderKey(old)
+                    newestOldKeypath = (k, '__older', old)
+                    for old in olders:
+                        version, date = self._splitOlderKey(old)
+                        ans = self.compareVersions(newestOldVersion, version)
+                        if ans == 0:
+                            ans = self.compareTimes(newestOldDate, date)
+                        if ans < 0:
+                            newestOldVersion = version
+                            newestOldDate = date
+                            newestOldKeypath = (k, '__older', old)
+                    ages[k] = (newestOldVersion, newestOldDate, newestOldKeypath)
         return ages
 
     def subsumeManifests(self, manifests):
@@ -287,12 +337,17 @@ class Manifest(dict):
                 manifest.subsumeTag(version, time, tag)
 
     def joinManifests(self, filepaths):
-        if len(filepaths) == 1:
+        if len(filepaths) == 1 and len(self.preprocessed) == 0:
+            #Don't do work if there's only one manifest
             self.loadManifest(filepaths[0])
             return
-        loadedManifests = []
+        loadedManifests = list(self.preprocessed)
         for filepath in filepaths:
             loadedManifests.append(Manifest([filepath]))
+        if len(loadedManifests) == 1:
+            #Don't do work if there's only one manifest
+            self.update(loadedManifests[0])
+            return
         self.subsumeManifests(loadedManifests)
         for manifest in loadedManifests:
             for key, value in manifest.iteritems():
@@ -305,9 +360,9 @@ class Manifest(dict):
                         if tagkey not in self[key][subkey]:
                             self[key][subkey][tagkey] = {}
                         fullManifestTag = self[key][subkey][tagkey]
-                        if type(tagvalue) is list:
-                            #This is for older versions, the list is [key, value]
-                            tagvalue = {tagvalue[0] : tagvalue[1:]}
+                        if '__older' in fullManifestTag \
+                          and '__older' in tagvalue:
+                            tagvalue['__older'].update(fullManifestTag['__older'])
                         fullManifestTag.update(tagvalue)
 
     def _translateOldToNewProduct(self):
@@ -331,10 +386,10 @@ class Manifest(dict):
                         if newtag not in newentry:
                             newentry[newtag] = {}
                         if type(items) is list:
-                            #HERE!!!! go from Product:
-                            #                   tag_context:
-                            #                      - packageformat
-                            #                      - packagedata
+                            #Go from Product:
+                            #          tag_context:
+                            #              - packageformat
+                            #              - packagedata
                             #   Product:
                             #     tag:
                             #       packageformat:
@@ -392,10 +447,13 @@ class Manifest(dict):
         if tag not in dictionary[key][part]:
             dictionary[key][part][tag] = {}
     
-    def diffManifest(self, processor, specificVersion=None, specificDate=None):
+    def diffManifest(self, processor, specificVersion=None, specificDate=None, latestOnly=False):
         result = {'diff' : {}}
         #Capture the version-full and time of the manifest
-        oldests = self.captureAllOldestTagAges(specificVersion, specificDate)
+        if latestOnly:
+            oldests = self.captureAllLatestOldTagAges()
+        else:
+            oldests = self.captureAllOldestTagAges(specificVersion, specificDate)
         for key, section in self.iteritems():
             for part, tags in section.iteritems():
                 for tag, data in tags.iteritems():
@@ -446,8 +504,21 @@ class DiffProcessor(object):
 
 class CsversionCli(CliDriver.CliDriver):
     def _prepSettings(self):
+        origManifests = self.settings['manifests']
         self.settings['manifests'] = [ x.strip() for x in self.settings['manifests'].split(',') ]
+        manifestFiles=[]
+        for manifest in self.settings['manifests']:
+            if os.path.isdir(manifest):
+                manifestFiles.extend(glob.glob(os.path.join(manifest,"*.csversion")))
+            else:
+                manifestFiles.append(manifest)
+        self.settings['manifests'] = manifestFiles
+        if self.settings['manifests-ignore']:
+            self.settings['manifests'] = []
+        elif len(self.settings['manifests']) == 0:
+            self.log.warning("No manifests specified or found from: %s", origManifests)
 
+        self.settings['csversionfile'] = [ x.strip() for x in self.settings['csversionfile'].split(',') ]
 
     def _setupProcessedOutput(self):
         self.outputs = []
@@ -460,7 +531,7 @@ class CsversionCli(CliDriver.CliDriver):
         for outtype, outclass in OUTPUT_TYPES.iteritems():
             if self.settings[outtype] is not None:
                 o = outclass()
-                o.setOutputStream(self.settings[outtype])
+                o.setFileAsStream(self.settings[outtype])
                 self.outputs.append(o)
 
     def output(self, dictionary):
@@ -476,7 +547,7 @@ class CsversionCli(CliDriver.CliDriver):
                     version = metadata['version-full']
                 except KeyError:
                     name = ""
-                    version = "No version found for tag"
+                    version = "No version or name found for tag"
                 if tag not in output['version']:
                     output['version'][tag] = []
                 output['version'][tag].append({
@@ -491,12 +562,24 @@ class CsversionCli(CliDriver.CliDriver):
         self.diffprocessor = self._getDiffProcessor()
         self._prepSettings()
         self._setupProcessedOutput()
-        self.manifest = Manifest(self.settings['manifests'])
+
+        preprocessed = []
+        if self.settings['capture']:
+            configs = self.settings['csversionfile']
+            newmanifest = {}
+            preprocessed.append(newmanifest)
+            execer = ConfigDriver.ConfigDriver(
+                configs,
+                self.log,
+                newmanifest )
+            execer.execute()
+        self.manifest = Manifest(self.settings['manifests'], preprocessed)
         if self.settings['diff']:
             self.output(self.manifest.diffManifest(
                 self.diffprocessor,
                 self.settings['diff-version'],
-                self.settings['diff-date']))
+                self.settings['diff-date'],
+                self.settings['diff-latest']))
             return
         if self.settings['verbose']:
             self.output(self.manifest)

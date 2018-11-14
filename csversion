@@ -26,13 +26,17 @@ CSVERSION_SETTINGS={
            For directories, csversion will look for *.csversion files""",
         False,
         "csversion manifests to query." ],
+    "manifests-ignore" : [
+        False,
+        """Ignore any manifests on the system, and the manifests flag""",
+        True ],
     "diff" : [
         False,
         """Creates a diff record of the manifest(s) supplied
            The oldest and newest are the two compared.
 
            A specific baseline version or date may be specified using
-           --diff-version and/or --diff-date""",
+           --diff-latest, --diff-version and/or --diff-date""",
         True,
         "Output the difference between oldest and newest manifest data" ],
     "diff-version" : [
@@ -54,16 +58,30 @@ CSVERSION_SETTINGS={
               date was 2014-05-05, then that will be used as a baseline.""",
         False,
         "Diff baseline closest older comparison date" ],
+    "diff-latest" : [
+        False,
+        """Specifies the difference of the latest two manifests""",
+        True ],
     "products" : [
         None,
         """Output only the version of the products listed in the option.
            The products will be listed comma separated.""",
         False,
         "Filter out all products not listed" ],
-    "generate" : [
-        "./csversionfile",
-        """Create a manifest on the live system using the csversion file""",
-        False ],
+    "capture" : [
+        False,
+        """Perform a capture of the current system state based on the
+           csversionfile configuration.
+              See --csversionfile for details""",
+        True,
+        "Perform capture of current system state using csversionfile" ],
+    "csversionfile" : [
+        "/etc/csversion/csversionfile",
+        """The csversionfile to use for a capture.
+           Multiple files may be specified using commas.
+           Example: --csversionfile=file1.csversion,file2.csversion""",
+        False,
+        "Comma separated list of csversionfiles to use for capture" ],
     "stdout" : [
         "yaml",
         """Output format for standard out:
