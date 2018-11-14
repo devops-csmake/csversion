@@ -159,10 +159,8 @@ class Manifest(dict):
 
                 if result != 0:
                     break
-            if result == 0:
-                return len(dotparts1) - len(dotparts2)
             else:
-                return result
+                return result if result != 0 else len(dotparts1) - len(dotparts2)
         except (TypeError, AttributeError):
             if version1 is None:
                 if version2 is None:
