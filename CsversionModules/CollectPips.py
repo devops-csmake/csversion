@@ -24,6 +24,7 @@ class CollectPips:
                 created image, both global and all virtual envs.
     Options: chroot - (OPTIONAL) Path to the chrootable built environment
              docker - (OPTIONAL) Docker container to interrogate
+             find-venvs - (OPTIONAL) Search for venvs, default is False
     """
 
     #PACKAGE_RE = re.compile(r'(?P<package>[^\s(]*)\s*(\()?(?P<version>[^)]*)(\))?')
@@ -75,6 +76,9 @@ class CollectPips:
         versdict = manifest
         docker = False
         sudo = True
+        find_venvs = False
+        if 'find-venvs' in options:
+            find_venvs = options['find-venvs'].lower() == 'true'
         if 'chroot' in options:
             mountpath = options['chroot']
             chroot = True
@@ -99,27 +103,28 @@ class CollectPips:
 
         grockCommand = lambda x: uberCommand(commandPrefix + x)
 
-        command = grockCommand(["find", "/", "|", "grep", "'bin/activate_this'"])
-        p = subprocess.Popen(
-            ' '.join(command),
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE )
-        out, err = p.communicate()
         venvs = []
-        if p.returncode != 0:
-            self.log.info("Search for virtual environments failed")
-            self.log.info("   It is possible that there are no virtual environments")
-            self.log.debug(err)
-        else:
-            venvraw = out.split('\n')
-            for raw in venvraw:
-                preppedpath = raw.strip().strip('.')
-                if len(preppedpath) == 0:
-                    continue
-                venv, _ = os.path.split(os.path.split(preppedpath)[0])
-                venvs.append(venv)
-        self.log.info("CollectPips will inspect the following virtualenvs: %s", str(venvs))
+        if find_venvs:
+            command = grockCommand(["find", "/", "|", "grep", "'bin/activate_this'"])
+            p = subprocess.Popen(
+                ' '.join(command),
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE )
+            out, err = p.communicate()
+            if p.returncode != 0:
+                self.log.info("Search for virtual environments failed")
+                self.log.info("   It is possible that there are no virtual environments")
+                self.log.debug(err)
+            else:
+                venvraw = out.split('\n')
+                for raw in venvraw:
+                    preppedpath = raw.strip().strip('.')
+                    if len(preppedpath) == 0:
+                        continue
+                    venv, _ = os.path.split(os.path.split(preppedpath)[0])
+                    venvs.append(venv)
+            self.log.info("CollectPips will inspect the following virtualenvs: %s", str(venvs))
         command = grockCommand(['pip', 'freeze'])
         p = subprocess.Popen(
             command,

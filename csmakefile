@@ -25,7 +25,7 @@ test=Run testing for csversion
 
 [metadata@csversion]
 name=csversion
-version=1.0.0
+version=1.0.1
 description=version and manifest capture/dump tool and libraries
 about=csversion works in conjunction with csmake's csmake-manifest library
  and other csmake modules that conform to and use the csversion formatting
