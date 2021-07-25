@@ -470,6 +470,7 @@ class Manifest(dict):
             oldests = self.captureAllLatestOldTagAges()
         else:
             oldests = self.captureAllOldestTagAges(specificVersion, specificDate)
+        self.log.debug("oldests answer: %s", oldests)
         for key, section in self.iteritems():
             for part, tags in section.iteritems():
                 for tag, data in tags.iteritems():
