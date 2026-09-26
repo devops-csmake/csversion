@@ -41,7 +41,7 @@ class Setter:
         if tag not in manifest:
             manifest[tag] = {}
         versdict = manifest[tag]
-        for option, value in options.iteritems():
+        for option, value in options.items():
             if option.startswith('**'):
                 continue
             manifestPart = versdict

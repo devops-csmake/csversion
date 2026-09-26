@@ -52,7 +52,7 @@ class Sheller:
         if tag not in manifest:
             manifest[tag] = {}
         versdict = manifest[tag]
-        for option, value in options.iteritems():
+        for option, value in options.items():
             if option.startswith('**'):
                 continue
             manifestPart = versdict
@@ -66,7 +66,8 @@ class Sheller:
             try:
                 previousManifestPart[part] = subprocess.check_output(
                     value,
-                    shell=True ).strip()
+                    shell=True,
+                    universal_newlines=True ).strip()
             except subprocess.CalledProcessError as cpe:
                 previousManifestPart[part] = "<<<Sheller FAILED>>> Return code: %d, Execution attempted: %s" % (cpe.returncode, cpe.cmd)
                 self.log.error("Sheller FAILED for tag '%s' prefix '%s' entry '%s' (Return code: %d) when attempting: %s",

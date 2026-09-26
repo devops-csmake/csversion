@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # </copyright>
 
-import ConfigParser
+import configparser
 import CsversionModules
 import datetime
 import os.path
@@ -28,7 +28,7 @@ class ConfigDriver(object):
             self.__dict__ = {}
 
     def __init__(self, configs, log, manifest):
-        self.spec = ConfigParser.RawConfigParser()
+        self.spec = configparser.RawConfigParser()
         self.log = log
         self.manifest = manifest
         for config in configs:

@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # </copyright>
-import CliDriver
-import ConfigDriver
+from . import CliDriver
+from . import ConfigDriver
 import datetime
 import glob
 import json
@@ -47,7 +47,7 @@ class XmlOutput(Output):
     def _outputHelper(self, item, indent=0):
         indentString = " " * 4 * indent
         if issubclass(type(item), dict):
-            for key, value in item.iteritems():
+            for key, value in item.items():
                 self.stream.write("%s<%s>\n" % (indentString, key))
                 self._outputHelper(value, indent+1)
                 self.stream.write("%s</%s>\n" % (indentString, key))
@@ -210,7 +210,7 @@ class Manifest(dict):
             zoneparts = zone.split(':')
             zoneparts.reverse()
             tz = datetime.timedelta(0,0,0,0,*map(int,zoneparts))
-        return datetime.datetime(*map(int, re.split('[^\d]', time))) + tz
+        return datetime.datetime(*map(int, re.split(r'[^\d]', time))) + tz
 
     def compareTimes(self, time1, time2):
         try:
@@ -230,8 +230,8 @@ class Manifest(dict):
         return "%s__%s" % (version, time)
 
     def subsumeTag(self, version, date, tag):
-        for key, value in self.iteritems():
-            for subkey, subvalue in value.iteritems():
+        for key, value in self.items():
+            for subkey, subvalue in value.items():
                 if tag not in subvalue:
                     continue
                 olderStash = {}
@@ -247,7 +247,7 @@ class Manifest(dict):
         return { k:(
             self.getVersionFullForTag(k),
             self.getTimeForTag(k),
-            (k,), v ) for k, v in tags.iteritems() }
+            (k,), v ) for k, v in tags.items() }
 
     def __getitem__(self, key):
         if type(key) is tuple:
@@ -366,13 +366,13 @@ class Manifest(dict):
             return
         self.subsumeManifests(loadedManifests)
         for manifest in loadedManifests:
-            for key, value in manifest.iteritems():
+            for key, value in manifest.items():
                 if key not in self:
                     self[key] = {}
-                for subkey, subvalue in value.iteritems():
+                for subkey, subvalue in value.items():
                     if subkey not in self[key]:
                         self[key][subkey] = {}
-                    for tagkey, tagvalue in subvalue.iteritems():
+                    for tagkey, tagvalue in subvalue.items():
                         if tagkey not in self[key][subkey]:
                             self[key][subkey][tagkey] = {}
                         fullManifestTag = self[key][subkey][tagkey]
@@ -385,11 +385,11 @@ class Manifest(dict):
         if 'sources' in self:
             newpackage = {}
             isOld = False
-            for package, tags in self['sources'].iteritems():
+            for package, tags in self['sources'].items():
                 #This assumes no mixing of old and new styles
                 # in each package entry
                 newentry = {}
-                for tag, items in tags.iteritems():
+                for tag, items in tags.items():
                     if '_' in tag or type(items) is list:
                         newitemdict = {}
                         #Reform the items
@@ -432,7 +432,7 @@ class Manifest(dict):
 
     def loadManifest(self, filepath):
         with open(filepath) as f:
-            y = yaml.load(f)
+            y = yaml.load(f, Loader=yaml.SafeLoader)
             self.update(y)
             self._translateOldToNewProduct()
 
@@ -441,7 +441,7 @@ class Manifest(dict):
             return False
         if type(dict1) is not dict:
             return dict1 == dict2
-        for key, value in dict1.iteritems():
+        for key, value in dict1.items():
             if key == '__older':
                 continue
             if key in dict2:
@@ -471,9 +471,9 @@ class Manifest(dict):
         else:
             oldests = self.captureAllOldestTagAges(specificVersion, specificDate)
         self.log.debug("oldests answer: %s", oldests)
-        for key, section in self.iteritems():
-            for part, tags in section.iteritems():
-                for tag, data in tags.iteritems():
+        for key, section in self.items():
+            for part, tags in section.items():
+                for tag, data in tags.items():
                     if tag in oldests:
                         pathtuple = (key,part) + oldests[tag][2]
                         oldest = data
@@ -545,7 +545,7 @@ class CsversionCli(CliDriver.CliDriver):
             self.outputs.append(OUTPUT_TYPES[self.settings['stdout']]())
 
         #Deal with the other flags
-        for outtype, outclass in OUTPUT_TYPES.iteritems():
+        for outtype, outclass in OUTPUT_TYPES.items():
             if self.settings[outtype] is not None:
                 o = outclass()
                 o.setFileAsStream(self.settings[outtype])
@@ -558,7 +558,7 @@ class CsversionCli(CliDriver.CliDriver):
     def listVersions(self, manifest):
         output = {'version':{}}
         if manifest.hasMetadata():
-            for tag, metadata in manifest['product']['metadata'].iteritems():
+            for tag, metadata in manifest['product']['metadata'].items():
                 try:
                     name = metadata['name']
                     version = metadata['version-full']

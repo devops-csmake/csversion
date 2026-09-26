@@ -36,7 +36,7 @@ about=csversion works in conjunction with csmake's csmake-manifest library
  about products and environments.
 packager=Jeremiah Patterson <jerry@casecracker.com>
 manufacturer=Cardinal Peak Technologies, LLC
-depends=python (>= 2.6)
+depends=python (>= 3.6)
 suggests=csmake, rpm, dpkg, pip, csmake-manifest
 keywords=make build development versioning manifests
 url=https://github.com/devops-csmake/csversion
@@ -49,9 +49,8 @@ classifiers=
     Topic :: Software Development :: Quality Assurance
     Topic :: System :: Logging
     Topic :: System :: Installation/Setup
-    Programming Language :: Python :: 2
-    Programming Language :: Python :: 2.6
-    Programming Language :: Python :: 2.7
+    Programming Language :: Python :: 3
+    Programming Language :: Python :: 3 :: Only
     License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 **files=
     <bin (python:script)> csversion,
