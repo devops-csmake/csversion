@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # </copyright>
 
-import ConfigParser
+import configparser
 import getopt
 import logging
 import os
@@ -28,8 +28,8 @@ import json
 import yaml
 
 from os import environ
-from Settings import Setting
-from Settings import Settings
+from .Settings import Setting
+from .Settings import Settings
 from sys import stderr
 from sys import stdout
 
@@ -251,7 +251,7 @@ class CliDriver(object):
                 self.settings[key] = value
 
     def _getFileOptions(self, filenames):
-        parser = ConfigParser.RawConfigParser()
+        parser = configparser.RawConfigParser()
         parser.read(filenames)
         try:
             sections = parser.sections()
@@ -303,7 +303,7 @@ class CliDriver(object):
 
     def _injectSynonyms(self, longOptions):
         result = list(longOptions)
-        for synonym, orig  in self.DEFAULT_CONFIG_SYNONYMS.iteritems():
+        for synonym, orig  in self.DEFAULT_CONFIG_SYNONYMS.items():
             if orig + '=' in longOptions:
                 synonym = synonym + '='
             result.append(synonym)
@@ -329,7 +329,7 @@ class CliDriver(object):
         try:
             options, remaining = getopt.getopt(sys.argv[1:], "", longOptions)
             self.settings['*'] = remaining
-        except Exception, e:
+        except Exception as e:
             self.log.critical(str(e))
             self.usage(str(e))
             sys.exit(1)
@@ -485,14 +485,14 @@ class CliDriver(object):
                 self.chat("    --%s: %s" % (key, description))
             if synonymTargets is not None and key in synonymTargets:
                 synonyms = []
-                for synonym, target in self.DEFAULT_CONFIG_SYNONYMS.iteritems():
+                for synonym, target in self.DEFAULT_CONFIG_SYNONYMS.items():
                     if target == key:
                         synonyms.append('--' + synonym)
                 self.chat("       Synonyms: %s" % ', '.join(synonyms))
         for key in groupKeys:
             self.chat("")
             self.chat( "  ==== %s options ====" % key)
-            for subkey, value in self.settings[key].iteritems():
+            for subkey, value in self.settings[key].items():
                 description = value.short
                 if useLong:
                     description = value.description

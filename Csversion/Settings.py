@@ -47,7 +47,7 @@ class Settings:
     def initSettings(self, root, settingsDict):
         # Settings are in the form [default value, help text, isFlag, short text]
         root.value = {}
-        for (key, value) in settingsDict.iteritems():
+        for (key, value) in settingsDict.items():
             if value is not type(dict):
                 if len(value) == 3:
                     root.value[key] = Setting(

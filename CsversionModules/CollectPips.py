@@ -110,7 +110,8 @@ class CollectPips:
                 ' '.join(command),
                 shell=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE )
+                stderr=subprocess.PIPE,
+                universal_newlines=True )
             out, err = p.communicate()
             if p.returncode != 0:
                 self.log.info("Search for virtual environments failed")
@@ -129,7 +130,8 @@ class CollectPips:
         p = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE )
+            stderr=subprocess.PIPE,
+            universal_newlines=True )
         out, err = p.communicate()
         #Iterate through all the freeze results
         specs = out.split('\n')
@@ -147,7 +149,8 @@ class CollectPips:
                 ' '.join(command),
                 shell=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE )
+                stderr=subprocess.PIPE,
+                universal_newlines=True )
             out, err = p.communicate()
             if p.returncode != 0:
                 self.log.info("Could not get information on %s", venv)

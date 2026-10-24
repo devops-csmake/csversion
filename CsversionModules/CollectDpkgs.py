@@ -61,8 +61,9 @@ class CollectDpkgs:
         self.log.debug("Executing: %s", " ".join(command))
         p = subprocess.Popen(command,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE )
-            
+            stderr=subprocess.PIPE,
+            universal_newlines=True )
+
         out, err = p.communicate()
         dpkgs = out.split('\n')
         for dpkg in dpkgs:
