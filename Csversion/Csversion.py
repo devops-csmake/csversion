@@ -172,9 +172,13 @@ class Manifest(dict):
                         result = intpart1sub - intpart2sub
                 except (ValueError, TypeError):
                     if part1 == part2:
-                        if part1sub > part2sub:
+                        # Python 3 can't order None against None or a str;
+                        # Python 2 sorted a missing suffix before any suffix
+                        sub1 = (part1sub is not None, part1sub or '')
+                        sub2 = (part2sub is not None, part2sub or '')
+                        if sub1 > sub2:
                             return 1
-                        elif part1sub < part2sub:
+                        elif sub1 < sub2:
                             return -1
                     else:
                         if part1 > part2:
@@ -183,7 +187,7 @@ class Manifest(dict):
                             return -1
 
                 if result != 0:
-                    break
+                    return result
             else:
                 return result if result != 0 else len(dotparts1) - len(dotparts2)
         except (TypeError, AttributeError):
